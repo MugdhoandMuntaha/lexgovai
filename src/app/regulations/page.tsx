@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { FileText, ShieldAlert, CheckCircle2, ArrowRight, RefreshCw, GitDiff, Hash } from 'lucide-react';
+import { FileText, ShieldAlert, CheckCircle2, RefreshCw, FileDiff, Hash } from 'lucide-react';
 import { detectRegulationChange } from '@/lib/api';
 import { RegulationChangeResponse } from '@/lib/types';
 
@@ -52,12 +52,12 @@ Failure to submit Form Mushak-9.1 within the mandatory 15-calendar-day window by
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-400 mb-1">
-            <ShieldAlert className="w-4 h-4" />
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-700 mb-1">
+            <ShieldAlert className="w-4 h-4 text-amber-600" />
             <span>Agent 1 — Watcher Output</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Regulatory Change Watcher</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Regulatory Change Watcher</h1>
+          <p className="text-sm text-slate-500 mt-1">
             Diffing fixture regulation pair (`regulation_before.txt` vs `regulation_after.txt`)
           </p>
         </div>
@@ -65,27 +65,27 @@ Failure to submit Form Mushak-9.1 within the mandatory 15-calendar-day window by
         <button
           onClick={fetchChange}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-sm font-semibold transition-all shrink-0"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold transition-all shrink-0 shadow-2xs"
         >
-          <RefreshCw className={`w-4 h-4 text-indigo-400 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 text-emerald-600 ${loading ? 'animate-spin' : ''}`} />
           <span>Re-Run Watcher Agent</span>
         </button>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
           {error}
         </div>
       )}
 
       {/* Watcher Summary Card */}
       {data && (
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl backdrop-blur-md">
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 space-y-6 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>
-              <h2 className="text-xl font-bold text-white">{data.title}</h2>
-              <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
-                <span className="flex items-center gap-1 font-mono text-indigo-400">
+              <h2 className="text-xl font-bold text-slate-900">{data.title}</h2>
+              <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                <span className="flex items-center gap-1 font-mono text-emerald-700 font-semibold">
                   <Hash className="w-3.5 h-3.5" />
                   Hash: {data.version_hash}
                 </span>
@@ -94,24 +94,24 @@ Failure to submit Form Mushak-9.1 within the mandatory 15-calendar-day window by
               </div>
             </div>
 
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 uppercase tracking-wider">
               {data.change_type}
             </span>
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Watcher Plain-Language Summary</h4>
-            <p className="text-base text-slate-200 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Watcher Plain-Language Summary</h4>
+            <p className="text-sm text-slate-800 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
               "{data.change_summary}"
             </p>
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Affected Regulatory Clauses</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Affected Regulatory Clauses</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {data.changed_clauses.map((clause, idx) => (
-                <div key={idx} className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950/50 border border-slate-800/80 text-xs text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                <div key={idx} className="flex items-start gap-2.5 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <span>{clause}</span>
                 </div>
               ))}
@@ -122,31 +122,31 @@ Failure to submit Form Mushak-9.1 within the mandatory 15-calendar-day window by
 
       {/* Redline Text Diff View */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 text-base font-bold text-white">
-          <GitDiff className="w-5 h-5 text-indigo-400" />
+        <div className="flex items-center gap-2 text-base font-bold text-slate-900">
+          <FileDiff className="w-5 h-5 text-emerald-600" />
           <h3>Cryptographic Regulation Text Diff</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Before Text */}
-          <div className="bg-slate-900/60 border border-rose-500/30 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-rose-500/20">
-              <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">Before — 2024 SRO Edition</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 font-mono">regulation_before.txt</span>
+          <div className="bg-white border border-rose-200 rounded-3xl p-5 space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between pb-2 border-b border-rose-100">
+              <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Before — 2024 SRO Edition</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-mono font-medium">regulation_before.txt</span>
             </div>
-            <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200">
               {beforeText}
             </pre>
           </div>
 
           {/* After Text */}
-          <div className="bg-slate-900/60 border border-emerald-500/30 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-emerald-500/20">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">After — 2025 Revised Edition</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-mono">regulation_after.txt</span>
+          <div className="bg-white border border-emerald-200 rounded-3xl p-5 space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
+              <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">After — 2025 Revised Edition</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-medium">regulation_after.txt</span>
             </div>
-            <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200">
               {afterText}
             </pre>
           </div>

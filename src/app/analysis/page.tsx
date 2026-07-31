@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Cpu, CheckCircle2, Loader2, ArrowRight, ShieldCheck, Database, FileDiff, Scale, Lock } from 'lucide-react';
+import { Cpu, CheckCircle2, Loader2, ArrowRight, ShieldCheck, Database, FileDiff, Scale } from 'lucide-react';
 import { runAnalysis, createCompanyProfile, uploadDocument } from '@/lib/api';
 
 export default function AnalysisPage() {
@@ -15,7 +15,6 @@ export default function AnalysisPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    // Read from session storage if present
     const cId = sessionStorage.getItem('company_profile_id');
     const dId = sessionStorage.getItem('document_id');
     if (cId && dId) {
@@ -28,31 +27,31 @@ export default function AnalysisPage() {
     {
       id: 1,
       name: 'Agent 1 — Watcher',
-      desc: 'Diffing regulation fixture texts and generating plain-language summary...',
+      desc: 'Diffing regulation text pair and extracting key legal obligations...',
       icon: FileDiff,
     },
     {
       id: 2,
       name: 'Agent 2 — Retriever',
-      desc: 'Querying ChromaDB vector embeddings for top SOP sections (k=3)...',
+      desc: 'Searching ChromaDB vector embeddings for top-k relevant SOP sections...',
       icon: Database,
     },
     {
       id: 3,
       name: 'Agent 3 — Impact Analyzer',
-      desc: 'Evaluating regulation clauses vs SOP excerpts to detect gaps and conflicts...',
+      desc: 'Analyzing regulatory clauses against SOP rules to detect compliance gaps...',
       icon: Scale,
     },
     {
       id: 4,
       name: 'Agent 4 — Action Plan Generator',
-      desc: 'Formulating redlined policy text & concrete technical fixes...',
+      desc: 'Drafting policy redline amendments and technical engineering fixes...',
       icon: Cpu,
     },
     {
       id: 5,
       name: 'Agent 5 — Critic / Verifier',
-      desc: 'Executing RapidFuzz citation verification & computing mathematical confidence...',
+      desc: 'Executing RapidFuzz citation verification & calculating mathematical confidence...',
       icon: ShieldCheck,
     },
   ];
@@ -66,7 +65,6 @@ export default function AnalysisPage() {
       let currentCId = companyProfileId;
       let currentDId = documentId;
 
-      // Auto-initialize sample profile if none uploaded yet
       if (!currentCId || !currentDId) {
         setActiveStep(1);
         const profile = await createCompanyProfile({
@@ -95,16 +93,13 @@ The finance and accounts department submits monthly VAT returns to the NBR withi
         setDocumentId(currentDId);
       }
 
-      // Step-by-step progress animation across the 5 agents
       for (let s = 1; s <= 5; s++) {
         setActiveStep(s);
-        await new Promise((res) => setTimeout(res, 800));
+        await new Promise((res) => setTimeout(res, 750));
       }
 
-      // Run actual FastAPI analyze endpoint
       const result = await runAnalysis(currentCId, currentDId);
 
-      // Navigate to Action Plan deliverable page
       router.push(`/action-plan/${result.id}`);
 
     } catch (err: any) {
@@ -119,28 +114,28 @@ The finance and accounts department submits monthly VAT returns to the NBR withi
       
       {/* Header */}
       <div className="text-center space-y-3 max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider">
           <Cpu className="w-3.5 h-3.5" />
-          <span>Synchronous 5-Agent RAG Orchestration</span>
+          <span>Synchronous 5-Agent RAG Execution</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-          Compliance Analysis Launchpad
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          Compliance Analysis Pipeline
         </h1>
-        <p className="text-sm text-slate-400">
-          Execute the multi-agent pipeline to compare your company SOP against the NBR VAT regulatory change. Target completion &lt; 30 seconds.
+        <p className="text-sm text-slate-500">
+          Execute multi-agent benchmarking against NBR VAT regulations. Total pipeline execution target &lt; 30 seconds.
         </p>
       </div>
 
       {errorMsg && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs text-center font-medium">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs text-center font-medium">
           {errorMsg}
         </div>
       )}
 
-      {/* Main Execution Card */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-8 space-y-8 shadow-2xl backdrop-blur-md">
+      {/* Main Card */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-8 space-y-8 shadow-2xs">
         
-        {/* Active Pipeline List */}
+        {/* Agent Step List */}
         <div className="space-y-4">
           {agents.map((agent) => {
             const Icon = agent.icon;
@@ -152,39 +147,39 @@ The finance and accounts department submits monthly VAT returns to the NBR withi
                 key={agent.id}
                 className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
                   isCurrent
-                    ? 'bg-indigo-950/40 border-indigo-500/50 shadow-lg shadow-indigo-500/10'
+                    ? 'bg-emerald-50/60 border-emerald-300 shadow-2xs'
                     : isDone
-                    ? 'bg-slate-950/60 border-slate-800/80'
-                    : 'bg-slate-950/30 border-slate-900 opacity-60'
+                    ? 'bg-slate-50/80 border-slate-200'
+                    : 'bg-slate-50/30 border-slate-100 opacity-60'
                 }`}
               >
                 <div className="flex items-center gap-4">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                       isCurrent
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                        ? 'bg-emerald-600 text-white shadow-2xs'
                         : isDone
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-slate-800 text-slate-500'
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                        : 'bg-slate-200 text-slate-500'
                     }`}
                   >
-                    {isDone ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+                    {isDone ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                       <span>{agent.name}</span>
                       {isCurrent && (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider font-mono">
-                          Running
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-wider font-mono font-semibold">
+                          Processing
                         </span>
                       )}
                     </h4>
-                    <p className="text-xs text-slate-400 mt-0.5">{agent.desc}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{agent.desc}</p>
                   </div>
                 </div>
 
-                {isCurrent && <Loader2 className="w-5 h-5 animate-spin text-indigo-400 shrink-0" />}
+                {isCurrent && <Loader2 className="w-4 h-4 animate-spin text-emerald-600 shrink-0" />}
               </div>
             );
           })}
@@ -195,17 +190,17 @@ The finance and accounts department submits monthly VAT returns to the NBR withi
           <button
             onClick={handleStartPipeline}
             disabled={running}
-            className="w-full py-4 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold text-base shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-3 transition-all"
+            className="w-full py-4 px-6 rounded-2xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition-all"
           >
             {running ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Running 5-Agent RAG Pipeline...</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Executing Multi-Agent RAG Pipeline...</span>
               </>
             ) : (
               <>
-                <span>Run 5-Agent Compliance Analysis</span>
-                <ArrowRight className="w-5 h-5" />
+                <span>Run Compliance Pipeline</span>
+                <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
