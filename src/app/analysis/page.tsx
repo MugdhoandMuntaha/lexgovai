@@ -98,9 +98,12 @@ The finance and accounts department submits monthly VAT returns to the NBR withi
         await new Promise((res) => setTimeout(res, 750));
       }
 
-      const result = await runAnalysis(currentCId, currentDId);
-
-      router.push(`/action-plan/${result.id}`);
+      if (currentCId && currentDId) {
+        const result = await runAnalysis(currentCId, currentDId);
+        router.push(`/action-plan/${result.id}`);
+      } else {
+        throw new Error('Company Profile ID or Document ID is missing.');
+      }
 
     } catch (err: any) {
       console.error(err);

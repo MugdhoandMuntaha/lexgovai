@@ -12,7 +12,7 @@ export interface FindingDetail {
   explanation: string;
   citation: CitationRef;
   confidence: number;
-  flagged_for_review: bool;
+  flagged_for_review: boolean;
 }
 
 export interface ActionPlanResponse {
