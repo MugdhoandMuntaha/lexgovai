@@ -62,7 +62,8 @@ export async function proxy(request: NextRequest) {
     user = null;
   }
 
-  const fallbackSession = request.cookies.get('complianceos_session')?.value;
+  const hasReauth = request.nextUrl.searchParams.get('reauth') === '1';
+  const fallbackSession = hasReauth ? null : request.cookies.get('complianceos_session')?.value;
   const isAuthenticated = Boolean(user || fallbackSession);
 
   const { pathname, search } = request.nextUrl;
@@ -77,13 +78,19 @@ export async function proxy(request: NextRequest) {
       res.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
       return res;
     }
+    if (hasReauth) {
+      response.cookies.delete('complianceos_session');
+    }
     return response;
   }
 
   if (isPublicAuthRoute) {
     const nextParam = request.nextUrl.searchParams.get('next');
     const destination = sanitizeNextUrl(nextParam);
-    return NextResponse.redirect(new URL(destination, request.url));
+    if (destination !== '/login' && destination !== '/signup') {
+      return NextResponse.redirect(new URL(destination, request.url));
+    }
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   const requestHeaders = new Headers(request.headers);
