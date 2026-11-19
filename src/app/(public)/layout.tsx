@@ -1,21 +1,25 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { getServerApiBase } from '@/lib/serverApi';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const API_BASE = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const session = cookieStore.get('complianceos_session')?.value;
+  const headersList = await headers();
+  const currentUrl = headersList.get('x-current-path') || '';
+  const isReauth = currentUrl.includes('reauth=1');
 
-  if (session) {
+  if (session && !isReauth) {
     try {
-      const res = await fetch(`${API_BASE}/me`, {
+      const apiBase = getServerApiBase();
+      const res = await fetch(`${apiBase}/me`, {
         headers: {
           Cookie: `complianceos_session=${session}`,
+          Authorization: `Bearer ${session}`,
         },
         cache: 'no-store',
       });
@@ -32,7 +36,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center mb-6">
           <span className="text-2xl font-black tracking-tight text-slate-900 select-none">
-            Compliance<span className="text-emerald-600">OS</span>
+            LexGOV <span className="text-emerald-600">AI</span>
           </span>
           <p className="mt-1 text-xs text-slate-500 font-medium">Enterprise Regulatory & SOP Intelligence</p>
         </div>
@@ -46,4 +50,3 @@ export default async function PublicLayout({ children }: { children: ReactNode }
     </div>
   );
 }
-

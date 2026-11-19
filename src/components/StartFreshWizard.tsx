@@ -78,7 +78,7 @@ const QUESTIONS: [
   {
     key: 'jurisdiction',
     title: 'Where will your business operate?',
-    subtitle: 'ComplianceOS benchmarks directly against National Board of Revenue (NBR) standards for Bangladesh.',
+    subtitle: 'LexGOV AI benchmarks directly against National Board of Revenue (NBR) standards for Bangladesh.',
     options: [
       { value: 'bangladesh', label: 'Bangladesh', desc: 'Subject to Bangladesh trade licenses, NBR VAT, and labor laws' },
       { value: 'international', label: 'International / multiple countries', desc: 'Cross-border trade across multiple regional jurisdictions' },

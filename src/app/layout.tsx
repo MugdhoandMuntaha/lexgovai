@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ComplianceOS | AI Compliance Action Plan Dashboard',
+  title: 'LexGOV AI | AI Compliance Action Plan Dashboard',
   description: 'AI-powered compliance dashboard comparing regulatory changes against corporate SOPs using multi-agent RAG pipeline.',
 };
 

@@ -45,6 +45,11 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:8000/api');
 
+/** Returns the API base URL for use in client components that need raw fetch (e.g. SSE streams). */
+export function getApiBase(): string {
+  return API_BASE;
+}
+
 /** Throws an ApiError carrying the backend's structured metadata (401, 403, 429) when available. */
 async function request<T>(path: string, init?: RequestInit, fallbackMessage = 'Request failed'): Promise<T> {
   let res: Response;
@@ -874,4 +879,304 @@ export async function uploadLawDocument(formData: FormData): Promise<{
     throw new Error(err.detail || `Upload failed with status ${res.status}`);
   }
   return res.json();
+}
+
+export interface AdminUserItem {
+  id: string;
+  email: string;
+  full_name: string | null;
+  is_platform_admin: number | boolean;
+  created_at: string;
+  workspace_id?: string;
+  workspace_name?: string;
+  role?: string;
+  plan_id?: string;
+  subscription_status?: string;
+}
+
+export function getAdminUsers(): Promise<{ users: AdminUserItem[]; total: number }> {
+  return request<{ users: AdminUserItem[]; total: number }>('/admin/users');
+}
+
+export function createAdminUser(body: {
+  email: string;
+  password: string;
+  full_name?: string;
+  role?: string;
+  plan_id?: string;
+  is_platform_admin?: boolean;
+}): Promise<{ ok: boolean; user: AdminUserItem }> {
+  return request<{ ok: boolean; user: AdminUserItem }>('/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateAdminUser(
+  userId: string,
+  body: {
+    full_name?: string;
+    role?: string;
+    plan_id?: string;
+    is_platform_admin?: boolean;
+  }
+): Promise<{ ok: boolean; message: string }> {
+  return request<{ ok: boolean; message: string }>(`/admin/users/${userId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export function resetAdminUserPassword(
+  userId: string,
+  newPassword: string
+): Promise<{ ok: boolean; message: string }> {
+  return request<{ ok: boolean; message: string }>(`/admin/users/${userId}/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+}
+
+export function deleteAdminUser(userId: string): Promise<{ ok: boolean; deleted_user_id: string }> {
+  return request<{ ok: boolean; deleted_user_id: string }>(`/admin/users/${userId}`, {
+    method: 'DELETE',
+  });
+}
+
+
+// ---------------------------------------------------------------------------
+// Alert Center Endpoints
+// ---------------------------------------------------------------------------
+
+export interface AlertItem {
+  id: string;
+  alert_event_id: string;
+  workspace_id: string;
+  recipient_user_id: string;
+  status: 'pending' | 'held' | 'sent' | 'partially_failed' | 'failed' | 'digested' | 'acknowledged' | 'escalated' | 'expired';
+  held_until?: string | null;
+  ack_required: number | boolean;
+  acked_at?: string | null;
+  acked_via?: string | null;
+  escalation_level: number;
+  event_type: string;
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+  entity_type: string;
+  entity_id: string;
+  event_payload: Record<string, any>;
+  recipient_email?: string;
+  recipient_name?: string;
+  created_at: string;
+}
+
+export interface AlertDeliveryItem {
+  id: string;
+  alert_id: string;
+  channel: string;
+  provider: string;
+  status: 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | 'rejected';
+  provider_message_id?: string | null;
+  error_code?: string | null;
+  segments: number;
+  cost_estimate: number;
+  attempt: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export function getAlerts(params?: {
+  status?: string;
+  severity?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ alerts: AlertItem[]; count: number }> {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set('status', params.status);
+  if (params?.severity) qs.set('severity', params.severity);
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.offset) qs.set('offset', String(params.offset));
+  return request(`/alerts?${qs.toString()}`, undefined, 'Failed to fetch alerts');
+}
+
+export function acknowledgeAlert(alertId: string, ackedVia: string = 'in_app'): Promise<{ status: string; alert: AlertItem }> {
+  return request(
+    `/alerts/${encodeURIComponent(alertId)}/ack`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acked_via: ackedVia }),
+    },
+    'Failed to acknowledge alert',
+  );
+}
+
+export function getAlertDeliveries(alertId: string): Promise<{ deliveries: AlertDeliveryItem[] }> {
+  return request(`/alerts/${encodeURIComponent(alertId)}/deliveries`, undefined, 'Failed to fetch deliveries');
+}
+
+export function getAlertPreferences(): Promise<{
+  preferences: Record<string, Record<string, boolean>>;
+  catalog: string[];
+}> {
+  return request('/alerts/preferences', undefined, 'Failed to load preferences');
+}
+
+export function updateAlertPreferences(preferences: Array<{ event_type: string; channel: string; enabled: boolean }>): Promise<{ status: string }> {
+  return request(
+    '/alerts/preferences',
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preferences }),
+    },
+    'Failed to update preferences',
+  );
+}
+
+export function getUserAlertChannels(): Promise<{
+  email: { address: string; verified: boolean; opted_out: boolean };
+  sms?: { address: string; verified: boolean; opted_out: boolean; locale: string } | null;
+  whatsapp?: { address: string; verified: boolean; opted_in: boolean; opted_out: boolean } | null;
+}> {
+  return request('/alerts/channels', undefined, 'Failed to fetch channels');
+}
+
+export function requestPhoneOtp(phoneNumber: string): Promise<{ status: string; masked_phone: string }> {
+  return request(
+    '/alerts/channels/otp/request',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number: phoneNumber }),
+    },
+    'Failed to request verification code',
+  );
+}
+
+export function verifyPhoneOtp(phoneNumber: string, code: string): Promise<{ status: string }> {
+  return request(
+    '/alerts/channels/otp/verify',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number: phoneNumber, code }),
+    },
+    'Failed to verify phone number',
+  );
+}
+
+export function optInWhatsApp(phoneNumber: string): Promise<{ status: string }> {
+  return request(
+    '/alerts/channels/whatsapp/opt-in',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number: phoneNumber }),
+    },
+    'Failed to opt into WhatsApp',
+  );
+}
+
+export function optOutAlertChannel(channel: string): Promise<{ status: string; channel: string }> {
+  return request(
+    `/alerts/channels/${encodeURIComponent(channel)}/opt-out`,
+    { method: 'POST' },
+    'Failed to opt out of channel',
+  );
+}
+
+export function reOptInAlertChannel(channel: string): Promise<{ status: string; channel: string }> {
+  return request(
+    `/alerts/channels/${encodeURIComponent(channel)}/re-opt-in`,
+    { method: 'POST' },
+    'Failed to re-enable channel',
+  );
+}
+
+export function previewSmsSegments(text: string): Promise<{
+  segments: number;
+  chars: number;
+  is_unicode: boolean;
+  max_single: number;
+  concat_limit: number;
+  cost_non_masking_bdt: number;
+  cost_masking_bdt: number;
+}> {
+  return request(
+    '/alerts/sms/preview-segments',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    },
+    'Failed to calculate SMS segments',
+  );
+}
+
+export function getComplianceOwners(): Promise<{ compliance_owners: any[] }> {
+  return request('/alerts/compliance-owners', undefined, 'Failed to fetch compliance owners');
+}
+
+export function setComplianceOwner(data: {
+  domain_tag: string;
+  primary_user_id: string;
+  backup_user_id?: string | null;
+}): Promise<{ status: string; compliance_owner: any }> {
+  return request(
+    '/alerts/compliance-owners',
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
+    'Failed to save compliance owner',
+  );
+}
+
+export function deleteComplianceOwner(domainTag: string): Promise<{ status: string }> {
+  return request(
+    `/alerts/compliance-owners/${encodeURIComponent(domainTag)}`,
+    { method: 'DELETE' },
+    'Failed to delete compliance owner',
+  );
+}
+
+export function getWorkspaceAlertSettings(): Promise<{ settings: any }> {
+  return request('/alerts/workspace-settings', undefined, 'Failed to load alert settings');
+}
+
+export function updateWorkspaceAlertSettings(settings: Record<string, any>): Promise<{ status: string; settings: any }> {
+  return request(
+    '/alerts/workspace-settings',
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    },
+    'Failed to update alert settings',
+  );
+}
+
+export function testSendAlert(data: {
+  channel: string;
+  recipient_address: string;
+  subject: string;
+  body: string;
+}): Promise<{ result: any }> {
+  return request(
+    '/alerts/test-send',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
+    'Failed to send test alert',
+  );
+}
+
+export function getAlertStats(): Promise<{ delivery_stats: Record<string, any> }> {
+  return request('/alerts/stats', undefined, 'Failed to fetch delivery stats');
 }

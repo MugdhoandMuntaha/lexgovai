@@ -68,7 +68,7 @@ export function CoverageClient({ coverage, isPlatformAdmin }: CoverageClientProp
             Transparency Notice: Zero Claims of Completeness
           </p>
           <p>
-            ComplianceOS does not crawl or store every Bangladesh law. Coverage reflects active discovery pipelines from configured government sources (e.g. Bangladesh Government Press, Ministry of Law legislative portal, NBR, and Bangladesh Bank). New enactments, SROs, and circulars are ingested, diffed, and critic-verified systematically.
+            LexGOV AI does not crawl or store every Bangladesh law. Coverage reflects active discovery pipelines from configured government sources (e.g. Bangladesh Government Press, Ministry of Law legislative portal, NBR, and Bangladesh Bank). New enactments, SROs, and circulars are ingested, diffed, and critic-verified systematically.
           </p>
         </div>
       </div>

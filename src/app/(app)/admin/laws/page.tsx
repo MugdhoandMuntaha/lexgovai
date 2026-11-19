@@ -1,28 +1,20 @@
 import React from 'react';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { AdminLawsClient } from './AdminLawsClient';
 import { MeResponse, LawSourceItem, LawItem, LawVersionItem, LawCoverageResponse } from '@/lib/types';
+import { getServerApiBase, getAuthHeaders } from '@/lib/serverApi';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const API_BASE = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-
 export default async function AdminLawsPage() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('complianceos_session')?.value;
-
-  if (!session) {
-    redirect('/login?next=/admin/laws');
-  }
-
-  const authHeaders = { Cookie: `complianceos_session=${session}` };
+  const apiBase = getServerApiBase();
+  const authHeaders = await getAuthHeaders();
 
   // Verify platform admin permission
   let me: MeResponse | null = null;
   try {
-    const meRes = await fetch(`${API_BASE}/me`, { headers: authHeaders, cache: 'no-store' });
+    const meRes = await fetch(`${apiBase}/me`, { headers: authHeaders, cache: 'no-store' });
     if (meRes.ok) {
       me = (await meRes.json()) as MeResponse;
     }
@@ -48,9 +40,9 @@ export default async function AdminLawsPage() {
 
   try {
     const [queueRes, sourcesRes, covRes] = await Promise.all([
-      fetch(`${API_BASE}/admin/laws/review-queue`, { headers: authHeaders, cache: 'no-store' }),
-      fetch(`${API_BASE}/admin/laws/sources`, { headers: authHeaders, cache: 'no-store' }),
-      fetch(`${API_BASE}/laws/coverage`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/admin/laws/review-queue`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/admin/laws/sources`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/laws/coverage`, { headers: authHeaders, cache: 'no-store' }),
     ]);
 
     if (queueRes.ok) {
@@ -78,4 +70,3 @@ export default async function AdminLawsPage() {
     />
   );
 }
-

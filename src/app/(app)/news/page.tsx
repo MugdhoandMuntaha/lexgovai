@@ -1,7 +1,10 @@
 import React from 'react';
 import { Newspaper, ExternalLink, Filter, Calendar, Tag, Globe, Sparkles } from 'lucide-react';
-import { getNews } from '@/lib/api';
 import { NewsItem } from '@/lib/types';
+import { getServerApiBase, getAuthHeaders } from '@/lib/serverApi';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface PageProps {
   searchParams: Promise<{ sector?: string; tag?: string; jurisdiction?: string }>;
@@ -17,8 +20,25 @@ export default async function NewsPage({ searchParams }: PageProps) {
   let errorMsg: string | null = null;
 
   try {
-    const res = await getNews({ sector, tag, jurisdiction });
-    newsItems = res.items || [];
+    const apiBase = getServerApiBase();
+    const authHeaders = await getAuthHeaders();
+    const qs = new URLSearchParams();
+    if (sector) qs.set('sector', sector);
+    if (tag) qs.set('tag', tag);
+    if (jurisdiction) qs.set('jurisdiction', jurisdiction);
+
+    const res = await fetch(`${apiBase}/news${qs.toString() ? `?${qs.toString()}` : ''}`, {
+      headers: authHeaders,
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      newsItems = data.items || [];
+    } else {
+      const err = await res.json().catch(() => null);
+      errorMsg = err?.detail || `Failed to load regulatory news (HTTP ${res.status})`;
+    }
   } catch (err: unknown) {
     errorMsg = err instanceof Error ? err.message : 'Failed to load regulatory news.';
   }

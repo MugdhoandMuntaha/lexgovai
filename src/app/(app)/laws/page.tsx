@@ -1,12 +1,10 @@
 import React from 'react';
-import { cookies } from 'next/headers';
 import { LawsClient } from './LawsClient';
 import { LawItem, LawCoverageResponse } from '@/lib/types';
+import { getServerApiBase, getAuthHeaders } from '@/lib/serverApi';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-const API_BASE = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 interface PageProps {
   searchParams: Promise<{
@@ -21,13 +19,8 @@ interface PageProps {
 
 export default async function LawsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const cookieStore = await cookies();
-  const session = cookieStore.get('complianceos_session')?.value;
-
-  const authHeaders: Record<string, string> = {};
-  if (session) {
-    authHeaders['Cookie'] = `complianceos_session=${session}`;
-  }
+  const apiBase = getServerApiBase();
+  const authHeaders = await getAuthHeaders();
 
   let laws: LawItem[] = [];
   let total = 0;
@@ -44,9 +37,9 @@ export default async function LawsPage({ searchParams }: PageProps) {
 
   try {
     const [lawsRes, covRes, recRes] = await Promise.all([
-      fetch(`${API_BASE}/laws?${qs.toString()}`, { headers: authHeaders, cache: 'no-store' }),
-      fetch(`${API_BASE}/laws/coverage`, { headers: authHeaders, cache: 'no-store' }),
-      fetch(`${API_BASE}/laws/recommended`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/laws?${qs.toString()}`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/laws/coverage`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/laws/recommended`, { headers: authHeaders, cache: 'no-store' }),
     ]);
 
     if (lawsRes.ok) {
@@ -77,4 +70,3 @@ export default async function LawsPage({ searchParams }: PageProps) {
     />
   );
 }
-

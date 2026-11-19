@@ -64,7 +64,8 @@ export async function proxy(request: NextRequest) {
 
   const hasReauth = request.nextUrl.searchParams.get('reauth') === '1';
   const fallbackSession = hasReauth ? null : request.cookies.get('complianceos_session')?.value;
-  const isAuthenticated = Boolean(user || fallbackSession);
+  const effectiveUser = hasReauth ? null : user;
+  const isAuthenticated = Boolean(effectiveUser || fallbackSession);
 
   const { pathname, search } = request.nextUrl;
   const isPublicAuthRoute = pathname === '/login' || pathname === '/signup';

@@ -1,33 +1,28 @@
 import React from 'react';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { AdminClient } from './AdminClient';
 import {
   MeResponse,
   QueueStats,
-  RegulationSourceAdmin,
   RegulationVersionAdmin,
+  RegulationSourceAdmin,
   SupportTicketAdmin,
 } from '@/lib/types';
+import { AdminUserItem } from '@/lib/api';
+import { getServerApiBase, getAuthHeaders } from '@/lib/serverApi';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const API_BASE = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
-
 export default async function AdminPage() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('complianceos_session')?.value;
-
-  if (!session) {
-    redirect('/login?next=/admin');
-  }
+  const apiBase = getServerApiBase();
+  const authHeaders = await getAuthHeaders();
 
   // Check admin rights via /me
   let me: MeResponse | null = null;
   try {
-    const meRes = await fetch(`${API_BASE}/me`, {
-      headers: { Cookie: `complianceos_session=${session}` },
+    const meRes = await fetch(`${apiBase}/me`, {
+      headers: authHeaders,
       cache: 'no-store',
     });
     if (meRes.ok) {
@@ -46,15 +41,15 @@ export default async function AdminPage() {
   let initialVersions: RegulationVersionAdmin[] = [];
   let initialSources: RegulationSourceAdmin[] = [];
   let initialTickets: SupportTicketAdmin[] = [];
-
-  const authHeaders = { Cookie: `complianceos_session=${session}` };
+  let initialUsers: AdminUserItem[] = [];
 
   try {
-    const [qRes, vRes, sRes, tRes] = await Promise.all([
-      fetch(`${API_BASE}/admin/queue`, { headers: authHeaders, cache: 'no-store' }),
-      fetch(`${API_BASE}/admin/regulations/pending`, { headers: authHeaders, cache: 'no-store' }),
-      fetch(`${API_BASE}/admin/sources`, { headers: authHeaders, cache: 'no-store' }),
-      fetch(`${API_BASE}/admin/support/tickets`, { headers: authHeaders, cache: 'no-store' }),
+    const [qRes, vRes, sRes, tRes, uRes] = await Promise.all([
+      fetch(`${apiBase}/admin/queue`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/admin/regulations/pending`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/admin/sources`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/admin/support/tickets`, { headers: authHeaders, cache: 'no-store' }),
+      fetch(`${apiBase}/admin/users`, { headers: authHeaders, cache: 'no-store' }),
     ]);
 
     if (qRes.ok) initialQueue = await qRes.json();
@@ -64,8 +59,12 @@ export default async function AdminPage() {
     }
     if (sRes.ok) initialSources = await sRes.json();
     if (tRes.ok) initialTickets = await tRes.json();
-  } catch (e) {
-    console.error('Failed to load initial admin telemetry on server', e);
+    if (uRes.ok) {
+      const uData = await uRes.json();
+      initialUsers = uData.users || [];
+    }
+  } catch (err) {
+    console.error('Failed to load admin telemetry on server:', err);
   }
 
   return (
@@ -74,6 +73,7 @@ export default async function AdminPage() {
       initialVersions={initialVersions}
       initialSources={initialSources}
       initialTickets={initialTickets}
+      initialUsers={initialUsers}
     />
   );
 }

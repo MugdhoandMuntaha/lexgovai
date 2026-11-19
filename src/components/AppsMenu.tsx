@@ -28,6 +28,9 @@ const itemColorMap: Record<string, { bg: string; text: string }> = {
   '/account': { bg: 'bg-slate-100', text: 'text-slate-700' },
   '/admin': { bg: 'bg-purple-50', text: 'text-purple-700' },
   '/laws': { bg: 'bg-indigo-50', text: 'text-indigo-700' },
+  '/alerts': { bg: 'bg-rose-50', text: 'text-rose-700' },
+  '/settings/notifications': { bg: 'bg-indigo-50', text: 'text-indigo-700' },
+  '/settings/alert-routing': { bg: 'bg-amber-50', text: 'text-amber-700' },
 };
 
 export function AppsMenu({ unreadCount = 0 }: AppsMenuProps) {
@@ -101,7 +104,7 @@ export function AppsMenu({ unreadCount = 0 }: AppsMenuProps) {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3.5">
             <div>
               <h3 className="text-sm font-bold text-slate-900">All Features & Apps</h3>
-              <p className="text-[11px] text-slate-500">ComplianceOS Platform Modules</p>
+              <p className="text-[11px] text-slate-500">LexGOV AI Platform Modules</p>
             </div>
             <button
               type="button"

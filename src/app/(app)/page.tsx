@@ -53,7 +53,7 @@ export default function Home() {
       </section>
 
       {/* Bangladesh Legal Library Spotlight */}
-      <section className="p-6 sm:p-8 rounded-3xl bg-linear-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-900/50 shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+      <section className="p-6 sm:p-8 rounded-3xl bg-slate-900 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-900/50 shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="space-y-2 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
@@ -141,7 +141,7 @@ export default function Home() {
       </section>
 
       {/* Subscription Pricing Banner */}
-      <section className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-3xl p-8 sm:p-10 text-white shadow-lg space-y-4">
+      <section className="bg-slate-900 bg-gradient-to-r from-indigo-900 to-slate-900 rounded-3xl p-8 sm:p-10 text-white shadow-lg space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-300">

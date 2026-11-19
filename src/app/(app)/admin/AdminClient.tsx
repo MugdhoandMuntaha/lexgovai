@@ -10,6 +10,12 @@ import {
   RefreshCw,
   Shield,
   Ticket,
+  Users,
+  Trash2,
+  KeyRound,
+  UserCog,
+  PlusCircle,
+  Crown,
 } from 'lucide-react';
 import {
   getAdminQueue,
@@ -21,6 +27,12 @@ import {
   createAdminNews,
   getAdminTickets,
   updateAdminTicket,
+  getAdminUsers,
+  createAdminUser,
+  updateAdminUser,
+  resetAdminUserPassword,
+  deleteAdminUser,
+  AdminUserItem,
 } from '@/lib/api';
 import {
   QueueStats,
@@ -29,11 +41,17 @@ import {
   SupportTicketAdmin,
 } from '@/lib/types';
 
+type TabKey = 'queue' | 'regulations' | 'sources' | 'news' | 'tickets' | 'users';
+
+const PLAN_OPTIONS = ['free', 'starter', 'growth', 'professional'];
+const ROLE_OPTIONS = ['viewer', 'member', 'admin', 'owner'];
+
 interface Props {
   initialQueue: QueueStats | null;
   initialVersions: RegulationVersionAdmin[];
   initialSources: RegulationSourceAdmin[];
   initialTickets: SupportTicketAdmin[];
+  initialUsers: AdminUserItem[];
 }
 
 export function AdminClient({
@@ -41,8 +59,9 @@ export function AdminClient({
   initialVersions,
   initialSources,
   initialTickets,
+  initialUsers,
 }: Props) {
-  const [tab, setTab] = useState<'queue' | 'regulations' | 'sources' | 'news' | 'tickets'>('queue');
+  const [tab, setTab] = useState<TabKey>('queue');
   const [isPending, startTransition] = useTransition();
 
   // Data states initialized from server props (No useEffect state-setting!)
@@ -50,6 +69,7 @@ export function AdminClient({
   const [pendingVersions, setPendingVersions] = useState<RegulationVersionAdmin[]>(initialVersions);
   const [sources, setSources] = useState<RegulationSourceAdmin[]>(initialSources);
   const [tickets, setTickets] = useState<SupportTicketAdmin[]>(initialTickets);
+  const [users, setUsers] = useState<AdminUserItem[]>(initialUsers);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -60,21 +80,49 @@ export function AdminClient({
   const [newsJurisdiction, setNewsJurisdiction] = useState('Bangladesh');
   const [newsUrl, setNewsUrl] = useState('');
 
+  // Users: create form state
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newFullName, setNewFullName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState('owner');
+  const [newPlan, setNewPlan] = useState('free');
+  const [newIsAdmin, setNewIsAdmin] = useState(false);
+
+  // Users: reset password modal
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetPwd, setResetPwd] = useState('');
+
+  // Users: change plan modal
+  const [planUserId, setPlanUserId] = useState<string | null>(null);
+  const [planValue, setPlanValue] = useState('');
+
+  const notify = (msg: string) => {
+    setSuccessMsg(msg);
+    setErrorMsg(null);
+  };
+  const notifyErr = (msg: string) => {
+    setErrorMsg(msg);
+    setSuccessMsg(null);
+  };
+
   const refreshAll = async () => {
     setErrorMsg(null);
     try {
-      const [q, v, s, t] = await Promise.all([
+      const [q, v, s, t, u] = await Promise.all([
         getAdminQueue().catch(() => null),
         getAdminPendingRegulations().catch(() => ({ versions: [] })),
         getAdminSources().catch(() => []),
         getAdminTickets().catch(() => []),
+        getAdminUsers().catch(() => ({ users: [], total: 0 })),
       ]);
       setQueueStats(q);
       setPendingVersions(v?.versions || []);
       setSources(s || []);
       setTickets(t || []);
+      setUsers(u?.users || []);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to refresh admin telemetry.');
+      notifyErr(err instanceof Error ? err.message : 'Failed to refresh admin telemetry.');
     }
   };
 
@@ -82,10 +130,10 @@ export function AdminClient({
     startTransition(async () => {
       try {
         await publishAdminRegulationVersion(versionId);
-        setSuccessMsg('Regulation version published and subscriber alert fan-out enqueued.');
+        notify('Regulation version published and subscriber alert fan-out enqueued.');
         await refreshAll();
       } catch (err: unknown) {
-        setErrorMsg(err instanceof Error ? err.message : 'Publish failed.');
+        notifyErr(err instanceof Error ? err.message : 'Publish failed.');
       }
     });
   };
@@ -94,10 +142,10 @@ export function AdminClient({
     startTransition(async () => {
       try {
         await rejectAdminRegulationVersion(versionId);
-        setSuccessMsg('Regulation version rejected.');
+        notify('Regulation version rejected.');
         await refreshAll();
       } catch (err: unknown) {
-        setErrorMsg(err instanceof Error ? err.message : 'Rejection failed.');
+        notifyErr(err instanceof Error ? err.message : 'Rejection failed.');
       }
     });
   };
@@ -106,10 +154,10 @@ export function AdminClient({
     startTransition(async () => {
       try {
         await triggerSourcePoll(sourceId);
-        setSuccessMsg('Source check job enqueued in worker queue.');
+        notify('Source check job enqueued in worker queue.');
         await refreshAll();
       } catch (err: unknown) {
-        setErrorMsg(err instanceof Error ? err.message : 'Failed to trigger poll.');
+        notifyErr(err instanceof Error ? err.message : 'Failed to trigger poll.');
       }
     });
   };
@@ -125,12 +173,12 @@ export function AdminClient({
           jurisdiction: newsJurisdiction,
           source_url: newsUrl || undefined,
         });
-        setSuccessMsg('Regulatory news bulletin published successfully.');
+        notify('Regulatory news bulletin published successfully.');
         setNewsTitle('');
         setNewsContent('');
         setNewsUrl('');
       } catch (err: unknown) {
-        setErrorMsg(err instanceof Error ? err.message : 'Failed to publish news.');
+        notifyErr(err instanceof Error ? err.message : 'Failed to publish news.');
       }
     });
   };
@@ -142,12 +190,105 @@ export function AdminClient({
         setTickets((prev) =>
           prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus as 'open' | 'in_progress' | 'resolved' | 'closed' } : t))
         );
-        setSuccessMsg(`Ticket status updated to ${newStatus}.`);
+        notify(`Ticket status updated to ${newStatus}.`);
       } catch (err: unknown) {
-        setErrorMsg(err instanceof Error ? err.message : 'Ticket update failed.');
+        notifyErr(err instanceof Error ? err.message : 'Ticket update failed.');
       }
     });
   };
+
+  // ── Users handlers ──────────────────────────────────────────────────────────
+
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    startTransition(async () => {
+      try {
+        await createAdminUser({
+          email: newEmail,
+          password: newPassword,
+          full_name: newFullName || undefined,
+          role: newRole,
+          plan_id: newPlan,
+          is_platform_admin: newIsAdmin,
+        });
+        notify(`User ${newEmail} created successfully.`);
+        setNewEmail(''); setNewFullName(''); setNewPassword('');
+        setNewRole('owner'); setNewPlan('free'); setNewIsAdmin(false);
+        setShowCreateUser(false);
+        const u = await getAdminUsers();
+        setUsers(u.users);
+      } catch (err: unknown) {
+        notifyErr(err instanceof Error ? err.message : 'Failed to create user.');
+      }
+    });
+  };
+
+  const handleResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetUserId) return;
+    startTransition(async () => {
+      try {
+        await resetAdminUserPassword(resetUserId, resetPwd);
+        notify('Password reset successfully.');
+        setResetUserId(null);
+        setResetPwd('');
+      } catch (err: unknown) {
+        notifyErr(err instanceof Error ? err.message : 'Password reset failed.');
+      }
+    });
+  };
+
+  const handleChangePlan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!planUserId) return;
+    startTransition(async () => {
+      try {
+        await updateAdminUser(planUserId, { plan_id: planValue });
+        notify(`Plan updated to ${planValue}.`);
+        setPlanUserId(null);
+        const u = await getAdminUsers();
+        setUsers(u.users);
+      } catch (err: unknown) {
+        notifyErr(err instanceof Error ? err.message : 'Plan update failed.');
+      }
+    });
+  };
+
+  const handleToggleAdmin = (user: AdminUserItem) => {
+    startTransition(async () => {
+      const isAdmin = Boolean(user.is_platform_admin);
+      try {
+        await updateAdminUser(user.id, { is_platform_admin: !isAdmin });
+        notify(`${user.email} ${isAdmin ? 'removed from' : 'promoted to'} platform admin.`);
+        const u = await getAdminUsers();
+        setUsers(u.users);
+      } catch (err: unknown) {
+        notifyErr(err instanceof Error ? err.message : 'Admin toggle failed.');
+      }
+    });
+  };
+
+  const handleDeleteUser = (user: AdminUserItem) => {
+    if (!confirm(`Permanently delete ${user.email}? This cannot be undone.`)) return;
+    startTransition(async () => {
+      try {
+        await deleteAdminUser(user.id);
+        notify(`User ${user.email} deleted.`);
+        setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      } catch (err: unknown) {
+        notifyErr(err instanceof Error ? err.message : 'Delete failed.');
+      }
+    });
+  };
+
+  const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { key: 'queue', label: 'Worker Queue', icon: Activity },
+    { key: 'regulations', label: `Pending Reviews (${pendingVersions.length})`, icon: Layers },
+    { key: 'sources', label: `Sources (${sources.length})`, icon: Clock },
+    { key: 'news', label: 'Curate News', icon: Newspaper },
+    { key: 'tickets', label: `Support Tickets (${tickets.length})`, icon: Ticket },
+    { key: 'users', label: `Users (${users.length})`, icon: Users },
+  ];
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -156,11 +297,11 @@ export function AdminClient({
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-2 border border-indigo-200">
             <Shield className="w-3.5 h-3.5" />
-            <span>Platform Operations & SRO Governance</span>
+            <span>Platform Operations &amp; SRO Governance</span>
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Admin Console</h1>
           <p className="text-sm text-slate-600 mt-1">
-            Supervise background worker jobs, publish detected statutory changes, poll sources, and triage customer support tickets.
+            Supervise background worker jobs, publish detected statutory changes, poll sources, manage users, and triage customer support tickets.
           </p>
         </div>
 
@@ -190,20 +331,14 @@ export function AdminClient({
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 gap-2">
-        {[
-          { key: 'queue', label: 'Worker Queue', icon: Activity },
-          { key: 'regulations', label: `Pending Reviews (${pendingVersions.length})`, icon: Layers },
-          { key: 'sources', label: `Sources (${sources.length})`, icon: Clock },
-          { key: 'news', label: 'Curate News', icon: Newspaper },
-          { key: 'tickets', label: `Support Tickets (${tickets.length})`, icon: Ticket },
-        ].map((t) => {
+      <div className="flex flex-wrap border-b border-slate-200 gap-1">
+        {TABS.map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
           return (
             <button
               key={t.key}
-              onClick={() => setTab(t.key as typeof tab)}
+              onClick={() => setTab(t.key)}
               className={`px-4 py-2.5 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all ${
                 active
                   ? 'border-indigo-600 text-indigo-700 bg-indigo-50/30'
@@ -244,81 +379,76 @@ export function AdminClient({
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-slate-900">Active Job Leases & Timestamps</h3>
+            <h3 className="text-sm font-bold text-slate-900">Active Job Leases &amp; Timestamps</h3>
             {queueStats?.running_leases && queueStats.running_leases.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left">
                   <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 font-medium">
-                      <th className="py-2">Job Type</th>
-                      <th className="py-2">Lease Expires At</th>
-                      <th className="py-2">Attempts</th>
+                    <tr className="border-b border-slate-100">
+                      <th className="pb-2 font-semibold text-slate-500">Job ID</th>
+                      <th className="pb-2 font-semibold text-slate-500">Type</th>
+                      <th className="pb-2 font-semibold text-slate-500">Run At</th>
+                      <th className="pb-2 font-semibold text-slate-500">Lease Until</th>
+                      <th className="pb-2 font-semibold text-slate-500">Attempts</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {queueStats.running_leases.map((l) => (
-                      <tr key={l.id} className="border-b border-slate-50">
-                        <td className="py-2 font-mono font-semibold text-slate-800">{l.type}</td>
-                        <td className="py-2 text-slate-500">{l.lease_until}</td>
-                        <td className="py-2 text-slate-600">{l.attempts}</td>
+                    {queueStats.running_leases.map((lease) => (
+                      <tr key={lease.id} className="border-b border-slate-50">
+                        <td className="py-1.5 font-mono text-slate-700">{lease.id.slice(0, 12)}…</td>
+                        <td className="py-1.5 text-slate-600">{lease.type}</td>
+                        <td className="py-1.5 text-slate-500">{new Date(lease.run_at).toLocaleTimeString()}</td>
+                        <td className="py-1.5 text-slate-500">{new Date(lease.lease_until).toLocaleTimeString()}</td>
+                        <td className="py-1.5 text-slate-500">{lease.attempts}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p className="text-xs text-slate-500">No background jobs currently running leases.</p>
+              <p className="text-xs text-slate-400 italic">No active job leases.</p>
             )}
           </div>
         </div>
       )}
 
-      {/* Tab: Regulations Pending Review */}
+      {/* Tab: Pending Regulation Reviews */}
       {tab === 'regulations' && (
         <div className="space-y-4">
           {pendingVersions.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
-              <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-slate-800">All Regulation Versions Published</p>
-              <p className="text-xs text-slate-500 mt-1">
-                No pending diffs or crawler candidates waiting for legal review.
-              </p>
+              <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-800">All Caught Up</p>
+              <p className="text-xs text-slate-500 mt-1">No regulation versions pending editorial review.</p>
             </div>
           ) : (
             pendingVersions.map((v) => (
-              <div
-                key={v.id}
-                className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3"
-              >
-                <div className="flex items-center justify-between">
+              <div key={v.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">{v.regulation_title}</h3>
-                    <p className="text-xs text-slate-500 font-mono">
-                      Version: {v.version_label} • Status: {v.status}
-                    </p>
+                    <p className="text-sm font-bold text-slate-900 mt-0.5">{v.regulation_title ?? 'Untitled Regulation'}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Version: {v.version_label} · Added: {new Date(v.created_at).toLocaleString()}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <button
-                      type="button"
                       onClick={() => handlePublish(v.id)}
                       disabled={isPending}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-all shadow-xs"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
                     >
-                      Publish & Fan-Out Alerts
+                      Publish
                     </button>
                     <button
-                      type="button"
                       onClick={() => handleReject(v.id)}
                       disabled={isPending}
-                      className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold"
+                      className="px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold"
                     >
                       Reject
                     </button>
                   </div>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs text-slate-700 max-h-48 overflow-y-auto">
-                  <pre className="whitespace-pre-wrap">{v.text}</pre>
-                </div>
+                <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 line-clamp-4">
+                  {v.text ? v.text.slice(0, 400) : 'No text preview available.'}
+                </p>
               </div>
             ))
           )}
@@ -328,70 +458,67 @@ export function AdminClient({
       {/* Tab: Sources */}
       {tab === 'sources' && (
         <div className="space-y-4">
-          <div className="grid gap-4">
-            {sources.map((s) => (
-              <div
-                key={s.id}
-                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-slate-900">{s.name}</h4>
-                    <span
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                        s.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {s.enabled ? 'Active Poller' : 'Disabled'}
+          {sources.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
+              <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-800">No Monitored Sources</p>
+              <p className="text-xs text-slate-500 mt-1">Add regulation sources to begin automated monitoring.</p>
+            </div>
+          ) : (
+            sources.map((s) => (
+              <div key={s.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-slate-900">{s.name}</p>
+                  <p className="text-xs font-mono text-slate-500">{s.url}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${s.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {s.enabled ? 'Active' : 'Paused'}
                     </span>
+                    {s.last_checked && (
+                      <span className="text-[10px] text-slate-400">Last checked: {new Date(s.last_checked).toLocaleString()}</span>
+                    )}
                   </div>
-                  <p className="text-xs text-slate-500 font-mono mt-1">{s.url || 'Manual Feed'}</p>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Last checked: {s.last_checked ? new Date(s.last_checked).toLocaleString() : 'Never'}
-                    {s.last_error && ` • Error: ${s.last_error}`}
-                  </p>
                 </div>
                 <button
-                  type="button"
                   onClick={() => handlePollSource(s.id)}
                   disabled={isPending}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shrink-0"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0"
                 >
                   Poll Now
                 </button>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
       )}
 
       {/* Tab: Curate News */}
       {tab === 'news' && (
-        <form onSubmit={handleCreateNews} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 max-w-2xl">
-          <h3 className="text-base font-bold text-slate-900">Publish Regulatory News Item</h3>
+        <form onSubmit={handleCreateNews} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+          <h3 className="text-sm font-bold text-slate-900">Publish Regulatory News Bulletin</h3>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Headline</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Title</label>
             <input
               type="text"
               required
               value={newsTitle}
               onChange={(e) => setNewsTitle(e.target.value)}
-              placeholder="e.g. NBR Issues SRO 182 Regarding Electronic Filing"
-              className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="New VAT Regulation for E-commerce"
+              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Content / Summary</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Content</label>
             <textarea
               required
-              rows={4}
+              rows={5}
               value={newsContent}
               onChange={(e) => setNewsContent(e.target.value)}
-              placeholder="Detailed statutory directive or gazette announcement..."
-              className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Summarize the regulation change and its impact..."
+              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Sector</label>
               <select
@@ -399,9 +526,9 @@ export function AdminClient({
                 onChange={(e) => setNewsSector(e.target.value)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300"
               >
-                <option value="Logistics & Freight">Logistics & Freight</option>
+                <option value="Logistics & Freight">Logistics &amp; Freight</option>
                 <option value="E-commerce">E-commerce</option>
-                <option value="Manufacturing & Trade">Manufacturing & Trade</option>
+                <option value="Manufacturing & Trade">Manufacturing &amp; Trade</option>
                 <option value="Financial Services">Financial Services</option>
               </select>
             </div>
@@ -485,6 +612,198 @@ export function AdminClient({
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Tab: Users */}
+      {tab === 'users' && (
+        <div className="space-y-6">
+          {/* Create user button */}
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-slate-500">{users.length} users registered on the platform.</p>
+            <button
+              onClick={() => setShowCreateUser((v) => !v)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              {showCreateUser ? 'Cancel' : 'Create User'}
+            </button>
+          </div>
+
+          {/* Create user form */}
+          {showCreateUser && (
+            <form onSubmit={handleCreateUser} className="bg-white p-6 rounded-2xl border border-indigo-200 shadow-xs space-y-4">
+              <h3 className="text-sm font-bold text-slate-900">New Platform User</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Email *</label>
+                  <input required type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" placeholder="user@example.com" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
+                  <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" placeholder="Jane Doe" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
+                  <input required type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" placeholder="Min 8 chars, 1 uppercase, 1 number" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Role</label>
+                  <select value={newRole} onChange={(e) => setNewRole(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300">
+                    {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Plan</label>
+                  <select value={newPlan} onChange={(e) => setNewPlan(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300">
+                    {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 mt-5">
+                  <input type="checkbox" id="newIsAdmin" checked={newIsAdmin} onChange={(e) => setNewIsAdmin(e.target.checked)}
+                    className="w-4 h-4 rounded" />
+                  <label htmlFor="newIsAdmin" className="text-xs font-semibold text-slate-700">Platform Admin</label>
+                </div>
+              </div>
+              <button type="submit" disabled={isPending}
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">
+                Create User
+              </button>
+            </form>
+          )}
+
+          {/* Reset password modal */}
+          {resetUserId && (
+            <form onSubmit={handleResetPassword} className="bg-white p-5 rounded-2xl border border-amber-200 shadow-xs space-y-3">
+              <h3 className="text-sm font-bold text-slate-900">Reset Password</h3>
+              <p className="text-xs text-slate-500">Setting new password for user ID: <span className="font-mono">{resetUserId.slice(0, 12)}…</span></p>
+              <input required type="password" value={resetPwd} onChange={(e) => setResetPwd(e.target.value)}
+                placeholder="New password (min 8 chars, 1 uppercase, 1 number)"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" />
+              <div className="flex gap-2">
+                <button type="submit" disabled={isPending}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold">
+                  Reset Password
+                </button>
+                <button type="button" onClick={() => { setResetUserId(null); setResetPwd(''); }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Change plan modal */}
+          {planUserId && (
+            <form onSubmit={handleChangePlan} className="bg-white p-5 rounded-2xl border border-indigo-200 shadow-xs space-y-3">
+              <h3 className="text-sm font-bold text-slate-900">Change Plan</h3>
+              <select value={planValue} onChange={(e) => setPlanValue(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300">
+                {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <div className="flex gap-2">
+                <button type="submit" disabled={isPending}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">
+                  Save Plan
+                </button>
+                <button type="button" onClick={() => setPlanUserId(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Users table */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="border-b border-slate-100">
+                <tr>
+                  <th className="px-4 py-3 font-semibold text-slate-500">Email</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500">Name</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500">Role</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500">Plan</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500">Admin</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500">Joined</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 font-mono text-slate-700">{u.email}</td>
+                    <td className="px-4 py-3 text-slate-700">{u.full_name ?? <span className="text-slate-400 italic">—</span>}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold capitalize">{u.role ?? '—'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold capitalize ${
+                        u.plan_id === 'professional' ? 'bg-indigo-100 text-indigo-700'
+                        : u.plan_id === 'growth' ? 'bg-violet-100 text-violet-700'
+                        : u.plan_id === 'starter' ? 'bg-sky-100 text-sky-700'
+                        : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {u.plan_id ?? 'free'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {Boolean(u.is_platform_admin) ? (
+                        <span title="Platform Admin"><Crown className="w-4 h-4 text-amber-500" /></span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-400">{new Date(u.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          title="Reset Password"
+                          onClick={() => { setResetUserId(u.id); setResetPwd(''); setPlanUserId(null); }}
+                          className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-600 transition-colors"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          title="Change Plan"
+                          onClick={() => { setPlanUserId(u.id); setPlanValue(u.plan_id ?? 'free'); setResetUserId(null); }}
+                          className="p-1.5 rounded-lg hover:bg-indigo-100 text-indigo-600 transition-colors"
+                        >
+                          <UserCog className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          title={Boolean(u.is_platform_admin) ? 'Remove Admin' : 'Make Admin'}
+                          onClick={() => handleToggleAdmin(u)}
+                          disabled={isPending}
+                          className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-500 transition-colors"
+                        >
+                          <Crown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          title="Delete User"
+                          onClick={() => handleDeleteUser(u)}
+                          disabled={isPending}
+                          className="p-1.5 rounded-lg hover:bg-rose-100 text-rose-500 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {users.length === 0 && (
+              <div className="text-center py-12">
+                <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs text-slate-500">No users found.</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

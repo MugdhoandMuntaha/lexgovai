@@ -49,13 +49,15 @@ const LAW_TYPES = [
 const DOMAIN_TAGS = [
   { value: '', label: 'All Domains' },
   { value: 'tax_vat', label: 'Tax & VAT' },
-  { value: 'banking_finance', label: 'Banking & Finance' },
-  { value: 'labor', label: 'Labor & Employment' },
+  { value: 'income_tax', label: 'Income Tax' },
   { value: 'customs', label: 'Customs & Tariffs' },
-  { value: 'data_privacy', label: 'Data & Cybersecurity' },
-  { value: 'corporate', label: 'Company & Corporate' },
-  { value: 'securities', label: 'Securities & Capital' },
+  { value: 'company_law', label: 'Company & Corporate' },
+  { value: 'labor', label: 'Labor & Employment' },
+  { value: 'banking', label: 'Banking & Finance' },
   { value: 'foreign_exchange', label: 'Foreign Exchange' },
+  { value: 'environment', label: 'Environment & Climate' },
+  { value: 'securities', label: 'Securities & Capital' },
+  { value: 'data_privacy', label: 'Data & Cybersecurity' },
 ];
 
 const STATUS_OPTIONS = [

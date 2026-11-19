@@ -17,7 +17,7 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
-import { deleteAssistantThread, getAssistantThreadMessages } from '@/lib/api';
+import { deleteAssistantThread, getAssistantThreadMessages, getApiBase } from '@/lib/api';
 import { AssistantCitationItem, AssistantMessageItem, AssistantThreadItem } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 
@@ -35,7 +35,7 @@ export function AssistantClient({ initialThreads, canPersistThreads, canGroundSo
     {
       role: 'assistant',
       content:
-        'Hello! I am ComplianceOS’s dedicated AI compliance assistant. Ask me questions regarding Bangladeshi NBR VAT regulations, corporate policies, filing deadlines, or statutory trade requirements.',
+        'Hello! I am LexGOV AI’s dedicated AI compliance assistant. Ask me questions regarding Bangladeshi NBR VAT regulations, corporate policies, filing deadlines, or statutory trade requirements.',
       citations: [],
     },
   ]);
@@ -117,8 +117,10 @@ export function AssistantClient({ initialThreads, canPersistThreads, canGroundSo
     setIsStreaming(true);
 
     try {
-      const res = await fetch('/api/assistant/ask', {
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/assistant/ask`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: query, thread_id: activeThreadId }),
         signal: abortController.signal,
@@ -128,8 +130,17 @@ export function AssistantClient({ initialThreads, canPersistThreads, canGroundSo
         if (res.status === 429) {
           throw new Error('Monthly AI question quota reached. Upgrade your plan for more queries.');
         }
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.detail || 'Failed to communicate with the compliance assistant.');
+        const errText = await res.text().catch(() => '');
+        let detail = 'Failed to communicate with the compliance assistant.';
+        try {
+          const errJson = JSON.parse(errText);
+          if (errJson.detail) detail = errJson.detail;
+          else if (errJson.message) detail = errJson.message;
+        } catch {
+          if (errText) detail = errText;
+        }
+        console.error(`[AssistantClient] API error ${res.status}:`, detail);
+        throw new Error(detail);
       }
 
       if (!res.body) throw new Error('Response stream unavailable.');

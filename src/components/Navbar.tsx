@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   Bell,
+  BellRing,
   Settings,
   Lock,
 } from 'lucide-react';
@@ -52,7 +53,7 @@ export const Navbar = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base font-extrabold text-slate-900 tracking-tight">
-                Compliance<span className="text-emerald-600">OS</span>
+                LexGOV <span className="text-emerald-600">AI</span>
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono border border-slate-200 font-semibold">
                 ENTERPRISE

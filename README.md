@@ -1,6 +1,6 @@
-# ComplianceOS — Frontend
+# LexGOV AI — Frontend
 
-Next.js 16 (App Router) + React 19 + Tailwind CSS frontend dashboard for ComplianceOS.
+Next.js 16 (App Router) + React 19 + Tailwind CSS frontend dashboard for LexGOV AI.
 
 ## Pages
 

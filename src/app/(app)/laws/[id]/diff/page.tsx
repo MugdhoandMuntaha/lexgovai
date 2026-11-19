@@ -1,13 +1,11 @@
 import React from 'react';
-import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { LawDiffClient } from './LawDiffClient';
 import { LawDetailResponse } from '@/lib/types';
+import { getServerApiBase, getAuthHeaders } from '@/lib/serverApi';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-const API_BASE = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,13 +18,8 @@ interface PageProps {
 export default async function LawDiffPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const sParams = await searchParams;
-  const cookieStore = await cookies();
-  const session = cookieStore.get('complianceos_session')?.value;
-
-  const authHeaders: Record<string, string> = {};
-  if (session) {
-    authHeaders['Cookie'] = `complianceos_session=${session}`;
-  }
+  const apiBase = getServerApiBase();
+  const authHeaders = await getAuthHeaders();
 
   let detail: LawDetailResponse | null = null;
   let diffData: {
@@ -43,7 +36,7 @@ export default async function LawDiffPage({ params, searchParams }: PageProps) {
   } | null = null;
 
   try {
-    const detailRes = await fetch(`${API_BASE}/laws/${encodeURIComponent(id)}`, {
+    const detailRes = await fetch(`${apiBase}/laws/${encodeURIComponent(id)}`, {
       headers: authHeaders,
       cache: 'no-store',
     });
@@ -70,7 +63,7 @@ export default async function LawDiffPage({ params, searchParams }: PageProps) {
 
     if (fromId && toId && fromId !== toId) {
       const diffRes = await fetch(
-        `${API_BASE}/laws/${encodeURIComponent(id)}/diff?from_version_id=${encodeURIComponent(
+        `${apiBase}/laws/${encodeURIComponent(id)}/diff?from_version_id=${encodeURIComponent(
           fromId,
         )}&to_version_id=${encodeURIComponent(toId)}`,
         { headers: authHeaders, cache: 'no-store' },
@@ -93,4 +86,3 @@ export default async function LawDiffPage({ params, searchParams }: PageProps) {
     />
   );
 }
-

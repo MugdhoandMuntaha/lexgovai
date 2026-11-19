@@ -15,6 +15,8 @@ import {
   User,
   Settings,
   BookOpen,
+  BellRing,
+  Sliders,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -85,9 +87,27 @@ export const navItems: NavItem[] = [
     capability: 'regulatory_news',
   },
   {
+    href: '/alerts',
+    label: 'Alert Center',
+    icon: BellRing,
+    primary: false,
+  },
+  {
     href: '/notifications',
     label: 'Notifications',
     icon: Bell,
+    primary: false,
+  },
+  {
+    href: '/settings/notifications',
+    label: 'Notification Matrix',
+    icon: Bell,
+    primary: false,
+  },
+  {
+    href: '/settings/alert-routing',
+    label: 'Alert Routing',
+    icon: Sliders,
     primary: false,
   },
   {

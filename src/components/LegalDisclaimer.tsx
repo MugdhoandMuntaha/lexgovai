@@ -24,7 +24,7 @@ export const LegalDisclaimer: React.FC<LegalDisclaimerProps> = ({ compact = fals
         <span>Mandatory Regulatory & Legal Disclaimer</span>
       </div>
       <p className="leading-relaxed text-amber-900 font-medium">
-        ComplianceOS provides automated multi-agent AI analysis comparing corporate SOP documentation against government regulatory amendments. All outputs, risk scores, redlined policy drafts, and technical recommendations are generated for informational assistance only and <strong className="text-amber-950 font-semibold">do not constitute legal advice</strong>. Formal compliance decisions must be reviewed by licensed legal counsel or accredited VAT tax practitioners.
+        LexGOV AI provides automated multi-agent AI analysis comparing corporate SOP documentation against government regulatory amendments. All outputs, risk scores, redlined policy drafts, and technical recommendations are generated for informational assistance only and <strong className="text-amber-950 font-semibold">do not constitute legal advice</strong>. Formal compliance decisions must be reviewed by licensed legal counsel or accredited VAT tax practitioners.
       </p>
     </div>
   );
