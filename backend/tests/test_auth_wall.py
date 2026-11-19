@@ -34,6 +34,9 @@ PUBLIC_ALLOWLIST = {
     ("POST", "/api/webhooks/alerts/sms"),
     ("GET", "/api/webhooks/alerts/whatsapp"),
     ("POST", "/api/webhooks/alerts/whatsapp"),
+    ("POST", "/api/auth/forgot-password"),
+    ("GET", "/api/auth/password-reset/verify"),
+    ("POST", "/api/auth/reset-password"),
 }
 
 

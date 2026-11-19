@@ -128,6 +128,17 @@ class InMemoryRateLimiter:
 
 
 login_limiter = InMemoryRateLimiter()
+password_reset_limiter = InMemoryRateLimiter(max_attempts=5, window_seconds=900, lockout_seconds=900)
+
+
+def generate_password_reset_token() -> str:
+    """Generates a high-entropy URL-safe password reset token."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_token(token: str) -> str:
+    """Returns SHA-256 hex digest of a token for secure storage and comparison."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 # ---------------------------------------------------------------------------

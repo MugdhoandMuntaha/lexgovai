@@ -586,6 +586,20 @@ CREATE TABLE IF NOT EXISTS short_links (
 );
 """
 
+SCHEMA_V8 = """
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
+"""
+
 LEGACY_WORKSPACE_ID = "workspace_legacy"
 LEGACY_USER_ID = "user_legacy"
 
@@ -829,6 +843,12 @@ class Database:
             self._conn.execute("INSERT INTO schema_version VALUES (7, ?)", (utcnow(),))
             self._conn.commit()
             current_ver = 7
+
+        if current_ver < 8:
+            self._conn.executescript(SCHEMA_V8)
+            self._conn.execute("INSERT INTO schema_version VALUES (8, ?)", (utcnow(),))
+            self._conn.commit()
+            current_ver = 8
 
         self._seed_regulations()
 
@@ -1512,6 +1532,47 @@ class Database:
             )
             self._conn.commit()
             return cur.rowcount > 0
+
+    def create_password_reset_token(self, user_id: str, token_hash: str, expires_at: str) -> dict[str, Any]:
+        token_id = new_id()
+        now = utcnow()
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
+                (token_id, user_id, token_hash, expires_at, now),
+            )
+            self._conn.commit()
+            return {
+                "id": token_id,
+                "user_id": user_id,
+                "token_hash": token_hash,
+                "expires_at": expires_at,
+                "used_at": None,
+                "created_at": now,
+            }
+
+    def get_password_reset_token(self, token_hash: str) -> dict[str, Any] | None:
+        return self._fetchone("SELECT * FROM password_reset_tokens WHERE token_hash = ?", (token_hash,))
+
+    def mark_password_reset_token_used(self, token_id: str) -> bool:
+        now = utcnow()
+        with self._lock:
+            cur = self._conn.execute(
+                "UPDATE password_reset_tokens SET used_at = ? WHERE id = ?",
+                (now, token_id),
+            )
+            self._conn.commit()
+            return cur.rowcount > 0
+
+    def delete_expired_password_reset_tokens(self) -> int:
+        now = utcnow()
+        with self._lock:
+            cur = self._conn.execute(
+                "DELETE FROM password_reset_tokens WHERE expires_at < ? OR used_at IS NOT NULL",
+                (now,),
+            )
+            self._conn.commit()
+            return cur.rowcount
 
     def delete_user(self, user_id: str) -> bool:
         with self._lock:

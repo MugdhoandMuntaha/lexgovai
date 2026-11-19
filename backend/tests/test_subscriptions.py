@@ -422,7 +422,7 @@ def test_migration_v1_to_v2(tmp_path: Path):
     db = Database(db_file)
 
     # Check version is now upgraded to latest
-    assert db.get_schema_version() == 7
+    assert db.get_schema_version() == 8
 
     # Check that legacy records now have workspace_id set to LEGACY_WORKSPACE_ID
     cp = db.get_company("legacy_cp_1")
@@ -452,7 +452,7 @@ def test_migration_v2_to_v3_seeds_regulations_and_preserves_data(tmp_path: Path)
     conn.close()
 
     db = Database(db_file)
-    assert db.get_schema_version() == 7
+    assert db.get_schema_version() == 8
 
     # Verify sample regulation and versions were seeded
     reg = db.get_regulation("nbr-vat-sro-4.2")
@@ -484,7 +484,7 @@ def test_migration_v3_to_v4_adds_supabase_and_ocr_columns(tmp_path: Path):
     conn.close()
 
     db = Database(db_file)
-    assert db.get_schema_version() == 7
+    assert db.get_schema_version() == 8
 
     # Verify additive columns exist
     with db._lock:
@@ -517,7 +517,7 @@ def test_migration_v4_to_v5_adds_legal_library_tables_and_fts(tmp_path: Path):
     conn.close()
 
     db = Database(db_file)
-    assert db.get_schema_version() == 7
+    assert db.get_schema_version() == 8
 
     # Verify new tables exist
     with db._lock:
@@ -539,7 +539,7 @@ def test_migration_v6_to_v7_adds_alert_center_tables(tmp_path: Path):
     """Verifies that database upgrades to V7 additively creating Alert Center tables."""
     db_file = tmp_path / "v7_test.db"
     db = Database(db_file)
-    assert db.get_schema_version() == 7
+    assert db.get_schema_version() == 8
 
     with db._lock:
         tables = [r[0] for r in db._conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
@@ -552,4 +552,16 @@ def test_migration_v6_to_v7_adds_alert_center_tables(tmp_path: Path):
         assert "workspace_alert_settings" in tables
         assert "sms_otps" in tables
         assert "short_links" in tables
+    db.close()
+
+
+def test_migration_v7_to_v8_adds_password_reset_tokens(tmp_path: Path):
+    """Verifies that database upgrades to V8 additively creating password_reset_tokens table."""
+    db_file = tmp_path / "v8_test.db"
+    db = Database(db_file)
+    assert db.get_schema_version() == 8
+
+    with db._lock:
+        tables = [r[0] for r in db._conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+        assert "password_reset_tokens" in tables
     db.close()

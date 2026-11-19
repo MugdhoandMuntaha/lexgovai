@@ -697,4 +697,20 @@ export interface LawCoverageResponse {
   sources: LawSourceItem[];
 }
 
+export interface ForgotPasswordResponse {
+  ok: boolean;
+  message: string;
+  reset_token?: string | null;
+}
+
+export interface ResetPasswordVerifyResponse {
+  valid: boolean;
+  email: string;
+}
+
+export interface PasswordActionResponse {
+  ok: boolean;
+  message: string;
+}
+
 

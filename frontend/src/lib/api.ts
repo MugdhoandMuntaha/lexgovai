@@ -29,6 +29,9 @@ import {
   RegulationSummary,
   RegulationText,
   RegulationVersionAdmin,
+  ForgotPasswordResponse,
+  ResetPasswordVerifyResponse,
+  PasswordActionResponse,
   StarterAnswers,
   StarterGuideResponse,
   StarterSOPRequest,
@@ -128,6 +131,22 @@ export function logout(): Promise<{ ok: boolean }> {
 
 export function getMe(): Promise<MeResponse> {
   return request('/auth/me', undefined, 'Failed to fetch current user session');
+}
+
+export function forgotPassword(email: string): Promise<ForgotPasswordResponse> {
+  return request('/auth/forgot-password', json({ email }), 'Failed to request password reset');
+}
+
+export function verifyPasswordResetToken(token: string): Promise<ResetPasswordVerifyResponse> {
+  return request(`/auth/password-reset/verify?token=${encodeURIComponent(token)}`, undefined, 'Failed to verify reset token');
+}
+
+export function resetPassword(token: string, newPassword: string): Promise<PasswordActionResponse> {
+  return request('/auth/reset-password', json({ token, new_password: newPassword }), 'Failed to reset password');
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<PasswordActionResponse> {
+  return request('/auth/change-password', json({ current_password: currentPassword, new_password: newPassword }), 'Failed to update password');
 }
 
 // ---------------------------------------------------------------------------

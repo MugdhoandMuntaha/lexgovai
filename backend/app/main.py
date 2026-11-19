@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import io
 import json
 import logging
+import os
 import secrets
 import time
 from typing import Any, Callable
@@ -79,6 +80,12 @@ from .schemas import (
     LawSourceResponse,
     LawSummaryResponse,
     LawVersionResponse,
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    PasswordActionResponse,
+    ResetPasswordRequest,
+    ResetPasswordVerifyResponse,
 )
 from .legal_library.change import compute_section_diffs
 from .legal_library.pipeline import LegalIngestionPipeline
@@ -657,6 +664,120 @@ def create_app(
             ),
         )
 
+    @public_router.post("/auth/forgot-password", response_model=ForgotPasswordResponse)
+    def forgot_password(body: ForgotPasswordRequest, request: Request):
+        client_ip = request.client.host if request.client else "unknown"
+        ip_key = f"reset_ip:{client_ip}"
+        email_key = f"reset_email:{body.email.strip().lower()}"
+
+        allowed_ip, retry_ip = auth.password_reset_limiter.check(ip_key)
+        if not allowed_ip:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Too many password reset requests. Please wait {retry_ip} seconds.",
+                headers={"Retry-After": str(retry_ip)},
+            )
+        allowed_email, retry_email = auth.password_reset_limiter.check(email_key)
+        if not allowed_email:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Too many password reset requests for this email. Please wait {retry_email} seconds.",
+                headers={"Retry-After": str(retry_email)},
+            )
+
+        user = svc.db.get_user_by_email(body.email.strip().lower())
+        reset_token: str | None = None
+
+        if user:
+            auth.password_reset_limiter.record_failure(email_key)
+            auth.password_reset_limiter.record_failure(ip_key)
+
+            raw_token = auth.generate_password_reset_token()
+            token_hash = auth.hash_token(raw_token)
+            expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(timespec="seconds")
+            svc.db.create_password_reset_token(user["id"], token_hash, expires_at)
+
+            # In development/test environments, expose token for easy verification
+            if settings.app_env.lower() != "production" or os.getenv("TESTING"):
+                reset_token = raw_token
+
+            base_url = os.getenv("APP_BASE_URL", "https://lexgov-ai-app.vercel.app")
+            reset_url = f"{base_url.rstrip('/')}/reset-password?token={raw_token}"
+            logger.info("[PASSWORD RESET] Reset link generated for %s: %s", user["email"], reset_url)
+
+        return ForgotPasswordResponse(
+            ok=True,
+            message="If an account with that email exists, password reset instructions have been generated.",
+            reset_token=reset_token,
+        )
+
+    @public_router.get("/auth/password-reset/verify", response_model=ResetPasswordVerifyResponse)
+    def verify_password_reset(token: str):
+        if not token or len(token) < 10:
+            raise HTTPException(status_code=400, detail="Invalid password reset token format.")
+
+        token_hash = auth.hash_token(token)
+        record = svc.db.get_password_reset_token(token_hash)
+        if not record:
+            raise HTTPException(status_code=400, detail="Invalid or expired password reset link.")
+
+        if record.get("used_at"):
+            raise HTTPException(status_code=400, detail="This password reset link has already been used.")
+
+        expires_at_str = record.get("expires_at")
+        if expires_at_str and datetime.fromisoformat(expires_at_str) < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="This password reset link has expired.")
+
+        user = svc.db.get_user_by_id(record["user_id"])
+        if not user:
+            raise HTTPException(status_code=400, detail="Associated user account not found.")
+
+        email = user["email"]
+        parts = email.split("@")
+        masked = f"{parts[0][:2]}***@{parts[1]}" if len(parts) == 2 and len(parts[0]) >= 2 else email
+
+        return ResetPasswordVerifyResponse(valid=True, email=masked)
+
+    @public_router.post("/auth/reset-password", response_model=PasswordActionResponse)
+    def reset_password(body: ResetPasswordRequest):
+        try:
+            auth.validate_password(body.new_password)
+        except ValueError as err:
+            raise HTTPException(status_code=400, detail=str(err))
+
+        token_hash = auth.hash_token(body.token)
+        record = svc.db.get_password_reset_token(token_hash)
+        if not record:
+            raise HTTPException(status_code=400, detail="Invalid or expired password reset token.")
+
+        if record.get("used_at"):
+            raise HTTPException(status_code=400, detail="This password reset link has already been used.")
+
+        expires_at_str = record.get("expires_at")
+        if expires_at_str and datetime.fromisoformat(expires_at_str) < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="This password reset link has expired.")
+
+        user = svc.db.get_user_by_id(record["user_id"])
+        if not user:
+            raise HTTPException(status_code=400, detail="Associated user account not found.")
+
+        new_salt = auth.generate_salt()
+        new_hash = auth.hash_password(body.new_password, new_salt)
+
+        success = svc.db.update_user_password(user["id"], new_hash, new_salt)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update password.")
+
+        svc.db.mark_password_reset_token_used(record["id"])
+
+        # Reset login brute-force limiter for this email
+        auth.login_limiter.reset(f"email:{user['email'].lower()}")
+
+        return PasswordActionResponse(
+            ok=True,
+            message="Your password has been successfully reset. Please log in with your new password.",
+        )
+
     @public_router.get("/health", response_model=HealthResponse)
     def health():
         return HealthResponse(status="ok")
@@ -671,6 +792,26 @@ def create_app(
             svc.db.delete_session(token)
         auth.clear_session_cookie(response, is_production=(settings.app_env.lower() == "production"))
         return {"ok": True}
+
+    @protected_router.post("/auth/change-password", response_model=PasswordActionResponse)
+    def change_password(body: ChangePasswordRequest, user: dict[str, Any] = Depends(get_current_user)):
+        full_user = svc.db.get_user_by_id(user["id"])
+        if not full_user or not auth.verify_password(body.current_password, full_user["salt"], full_user["password_hash"]):
+            raise HTTPException(status_code=400, detail="Current password is incorrect.")
+
+        try:
+            auth.validate_password(body.new_password)
+        except ValueError as err:
+            raise HTTPException(status_code=400, detail=str(err))
+
+        if body.current_password == body.new_password:
+            raise HTTPException(status_code=400, detail="New password cannot be identical to the current password.")
+
+        new_salt = auth.generate_salt()
+        new_hash = auth.hash_password(body.new_password, new_salt)
+        svc.db.update_user_password(user["id"], new_hash, new_salt)
+
+        return PasswordActionResponse(ok=True, message="Password updated successfully.")
 
     @protected_router.get("/me", response_model=MeResponse)
     def get_me(user: dict[str, Any] = Depends(get_current_user), workspace: dict[str, Any] = Depends(get_current_workspace)):

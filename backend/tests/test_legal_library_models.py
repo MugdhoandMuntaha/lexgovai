@@ -10,7 +10,7 @@ from app.db import Database
 def test_legal_library_crud_and_fts_search(tmp_path: Path):
     db_file = tmp_path / "legal_lib_test.db"
     db = Database(db_file)
-    assert db.get_schema_version() == 7
+    assert db.get_schema_version() == 8
 
     # 1. Create a law source
     source = db.create_law_source(

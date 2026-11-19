@@ -23,6 +23,36 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=150)
+
+
+class ForgotPasswordResponse(BaseModel):
+    ok: bool = True
+    message: str
+    reset_token: str | None = None
+
+
+class ResetPasswordVerifyResponse(BaseModel):
+    valid: bool
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=10)
+    new_password: str = Field(min_length=1, max_length=128)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=1, max_length=128)
+
+
+class PasswordActionResponse(BaseModel):
+    ok: bool = True
+    message: str
+
+
 class UserResponse(BaseModel):
     id: str
     email: str
