@@ -249,6 +249,60 @@ export function createStarterSOP(req: StarterSOPRequest): Promise<DocumentUpload
   return request('/starter-guide/sop', json(req), 'Failed to generate and index starter SOP');
 }
 
+export async function downloadStarterSOPPdf(req: StarterSOPRequest): Promise<void> {
+  const res = await fetch(`${API_BASE}/starter-guide/sop/pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    let msg = 'Failed to generate SOP PDF';
+    try {
+      const err = (await res.json()) as { detail?: string };
+      if (err.detail) msg = err.detail;
+    } catch {
+      // non-JSON
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const safeName = (req.company_name || 'Company').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+  a.download = `${safeName}_Standard_Operating_Procedure.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function downloadDocumentPdf(documentId: string, filename = 'document.pdf'): Promise<void> {
+  const res = await fetch(`${API_BASE}/documents/${encodeURIComponent(documentId)}/pdf`, {
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    let msg = 'Failed to download document PDF';
+    try {
+      const err = (await res.json()) as { detail?: string };
+      if (err.detail) msg = err.detail;
+    } catch {
+      // non-JSON
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export function detectRegulationChange(): Promise<RegulationChangeResponse> {
   return request('/regulations/detect-change', { method: 'POST' }, 'Watcher agent failed');
 }

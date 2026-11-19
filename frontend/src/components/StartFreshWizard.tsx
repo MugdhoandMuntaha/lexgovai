@@ -13,6 +13,8 @@ import {
   FileText,
   RefreshCw,
   Building2,
+  Download,
+  Check,
 } from 'lucide-react';
 import {
   StarterAnswers,
@@ -21,7 +23,7 @@ import {
   PolicyTier,
   DocumentUploadResponse,
 } from '@/lib/types';
-import { getStarterGuide, createStarterSOP } from '@/lib/api';
+import { getStarterGuide, createStarterSOP, downloadStarterSOPPdf } from '@/lib/api';
 import {
   loadStarterAnswers,
   saveStarterAnswers,
@@ -196,6 +198,8 @@ export const StartFreshWizard: React.FC<StartFreshWizardProps> = ({ onSOPCreated
   // Starter SOP form state
   const [companyName, setCompanyName] = useState('Apex Logistics Bangladesh Ltd.');
   const [sopLoading, setSopLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfSuccess, setPdfSuccess] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const currentQ = QUESTIONS[currentStep];
@@ -290,6 +294,24 @@ export const StartFreshWizard: React.FC<StartFreshWizardProps> = ({ onSOPCreated
     }
   };
 
+  const handleDownloadPDF = async () => {
+    setPdfLoading(true);
+    setError(null);
+    try {
+      await downloadStarterSOPPdf({
+        ...(answers as StarterAnswers),
+        company_name: companyName,
+      });
+      setPdfSuccess(true);
+      setTimeout(() => setPdfSuccess(false), 5000);
+    } catch (err: unknown) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to download formal SOP PDF.');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   // -------------------------------------------------------------------------
   // Results Screen View
   // -------------------------------------------------------------------------
@@ -301,14 +323,48 @@ export const StartFreshWizard: React.FC<StartFreshWizardProps> = ({ onSOPCreated
       <div className="space-y-8">
         
         {/* Results Header */}
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Prioritized Starter Policy Roadmap</span>
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Prioritized Starter Policy Roadmap</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Your Tailored Compliance Roadmap
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDownloadPDF}
+              disabled={pdfLoading}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 border-2 border-emerald-600/30 hover:border-emerald-600 font-bold text-xs shadow-2xs transition-all shrink-0 cursor-pointer disabled:opacity-50"
+              title="Download clean, executive-formatted corporate SOP as a PDF"
+            >
+              {pdfLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+                  <span>Preparing Formal PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 text-emerald-600" />
+                  <span>Download Formal SOP (PDF)</span>
+                </>
+              )}
+            </button>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Your Tailored Compliance Roadmap
-          </h2>
+
+          {pdfSuccess && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2.5">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                Formal SOP PDF downloaded successfully. Prepared with executive metadata, core operating articles, policy schedules, sign-off blocks, and pagination.
+              </span>
+            </div>
+          )}
+
           <p className="text-sm text-slate-600 leading-relaxed bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs">
             {guide.summary}
           </p>
@@ -451,7 +507,7 @@ export const StartFreshWizard: React.FC<StartFreshWizardProps> = ({ onSOPCreated
                   type="button"
                   onClick={handleGenerateSOP}
                   disabled={sopLoading}
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-all"
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   {sopLoading ? (
                     <>
@@ -468,8 +524,28 @@ export const StartFreshWizard: React.FC<StartFreshWizardProps> = ({ onSOPCreated
 
                 <button
                   type="button"
+                  onClick={handleDownloadPDF}
+                  disabled={pdfLoading}
+                  className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  title="Download clean formatted PDF document"
+                >
+                  {pdfLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                      <span>Generating PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 text-white" />
+                      <span>Download SOP (PDF)</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setGuide(null)}
-                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs transition-all text-center"
+                  className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs transition-all text-center cursor-pointer"
                 >
                   Edit My Answers
                 </button>
@@ -480,15 +556,34 @@ export const StartFreshWizard: React.FC<StartFreshWizardProps> = ({ onSOPCreated
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-start gap-3">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
-                  Starter SOP generation and automated benchmarking currently requires <strong>Bangladesh</strong> jurisdiction because the engine actively audits against the NBR VAT SRO standard. You can download or review your policy roadmap above.
+                  Starter SOP generation and automated benchmarking currently requires <strong>Bangladesh</strong> jurisdiction because the engine actively audits against the NBR VAT SRO standard. You can download your formal corporate policy roadmap PDF below.
                 </span>
               </div>
 
-              <div>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  disabled={pdfLoading}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {pdfLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                      <span>Generating PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 text-white" />
+                      <span>Download Formal Roadmap (PDF)</span>
+                    </>
+                  )}
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setGuide(null)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-sm"
+                  className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs shadow-sm cursor-pointer"
                 >
                   Edit My Answers
                 </button>

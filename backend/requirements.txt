@@ -9,3 +9,4 @@ pypdfium2>=5.15
 pillow>=13.0
 python-dotenv>=1.2
 pyjwt>=2.10
+reportlab>=5.1

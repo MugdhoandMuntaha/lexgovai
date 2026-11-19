@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from . import agents, auth, starter
+from . import agents, auth, sop_pdf, starter
 from .adapters import ConsoleNotifier
 from .api_v1 import ApiKeyCreateRequest, VALID_SCOPES, create_api_v1_router
 from .billing import BillingProvider, MockBillingProvider
@@ -1090,6 +1090,63 @@ def create_app(
         except Exception:
             svc.usage.release(idempotency_key)
             raise
+
+    @protected_router.post("/starter-guide/sop/pdf")
+    def download_starter_sop_pdf(
+        body: StarterSOPRequest,
+        workspace: dict[str, Any] = Depends(get_current_workspace),
+    ):
+        """Generates and downloads a clean, highly formatted, formal PDF for the Starter SOP."""
+        try:
+            guide = starter.generate_starter_guide(svc, body, workspace_id=workspace["id"])
+            pdf_bytes = sop_pdf.generate_starter_sop_pdf(body, body.company_name, guide=guide)
+        except Exception as exc:
+            logger.error("Failed to generate starter SOP PDF: %s", exc)
+            raise HTTPException(status_code=500, detail="Failed to generate SOP PDF.")
+
+        clean_name = body.company_name.strip() or "Company"
+        safe_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in clean_name)
+        filename = f"{safe_name}_Standard_Operating_Procedure.pdf"
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Type": "application/pdf",
+            },
+        )
+
+    @protected_router.get("/documents/{document_id}/pdf")
+    def download_document_pdf(
+        document_id: str,
+        workspace: dict[str, Any] = Depends(get_current_workspace),
+    ):
+        """Generates and downloads a formatted, formal PDF for any stored SOP document."""
+        doc = svc.db.get_document(document_id, workspace_id=workspace["id"])
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found.")
+
+        company = svc.db.get_company(doc["company_profile_id"])
+        company_name = company["company_name"] if company else "Company"
+
+        try:
+            pdf_bytes = sop_pdf.generate_document_pdf(doc, company_name=company_name)
+        except Exception as exc:
+            logger.error("Failed to render document PDF: %s", exc)
+            raise HTTPException(status_code=500, detail="Failed to render document PDF.")
+
+        safe_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in company_name.strip() or "Company")
+        filename = f"{safe_name}_SOP_{document_id[:8]}.pdf"
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Type": "application/pdf",
+            },
+        )
 
     @protected_router.get("/regulations/current")
     def current_regulation():

@@ -194,3 +194,56 @@ def test_starter_sop_endpoint_indexes_and_integrates_with_analysis(client):
     assert plan["id"]
     assert plan["company"] == "Dhaka Cloud Kitchens"
     assert len(plan["findings"]) > 0
+
+
+def test_starter_sop_pdf_download_endpoint(client):
+    """Verifies that /api/starter-guide/sop/pdf returns a valid, formatted PDF document."""
+    res = client.post(
+        "/api/starter-guide/sop/pdf",
+        json={
+            "company_name": "Apex Trade Systems Ltd.",
+            "stage": "planning_launch",
+            "sector": "ecommerce",
+            "jurisdiction": "bangladesh",
+            "customers": "b2c",
+            "delivery": "online",
+            "hiring": "small_team",
+            "collects_data": "yes",
+            "payments": "both",
+            "first_help": "general_guide",
+        },
+    )
+    assert res.status_code == 200, res.text
+    assert res.headers["content-type"] == "application/pdf"
+    assert "attachment;" in res.headers["content-disposition"]
+    assert "Apex_Trade_Systems_Ltd__Standard_Operating_Procedure.pdf" in res.headers["content-disposition"]
+    assert res.content.startswith(b"%PDF-")
+    assert len(res.content) > 5000
+
+
+def test_document_pdf_download_endpoint(client):
+    """Verifies that /api/documents/{id}/pdf exports any indexed document as a formal PDF."""
+    sop_res = client.post(
+        "/api/starter-guide/sop",
+        json={
+            "company_name": "Bengal Export Logistics",
+            "stage": "operating",
+            "sector": "manufacturing",
+            "jurisdiction": "bangladesh",
+            "customers": "b2b",
+            "delivery": "physical",
+            "hiring": "growing_team",
+            "collects_data": "no",
+            "payments": "digital",
+            "first_help": "registration_basics",
+        },
+    )
+    assert sop_res.status_code == 200, sop_res.text
+    doc_id = sop_res.json()["document_id"]
+
+    pdf_res = client.get(f"/api/documents/{doc_id}/pdf")
+    assert pdf_res.status_code == 200, pdf_res.text
+    assert pdf_res.headers["content-type"] == "application/pdf"
+    assert "attachment;" in pdf_res.headers["content-disposition"]
+    assert pdf_res.content.startswith(b"%PDF-")
+    assert len(pdf_res.content) > 3000
