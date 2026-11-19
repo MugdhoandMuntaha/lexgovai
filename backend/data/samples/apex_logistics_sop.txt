@@ -1,0 +1,21 @@
+Standard Operating Procedure: Financial Operations & Compliance (SOP-FIN-2024-v2)
+Company: Apex Logistics Bangladesh Ltd.
+
+Section 1: Overview and Purpose
+This document governs routine tax, VAT, and accounting procedures for Apex Logistics Bangladesh Ltd. It applies to all finance, accounts, and administration staff at the Dhaka head office and the Chattogram branch.
+
+Section 2: Roles and Responsibilities
+The Head of Finance owns this SOP and reviews it annually. The accounts team prepares monthly ledgers, reconciles vendor invoices, and maintains VAT records. No single individual is assigned ownership of statutory tax filings.
+
+Section 5: Invoice Processing
+All customer invoices are issued through the ERP system with a valid Mushak-6.3 VAT invoice. Vendor invoices are verified against purchase orders before payment is approved.
+
+Section 6.1: VAT Submission Timelines & Responsibilities
+The finance and accounts department submits monthly VAT returns to the NBR within 30 calendar days following the tax month end. Any available finance team member is authorized to process filings via the NBR online portal.
+
+Section 6.2: VAT Record Keeping
+Copies of submitted returns, payment challans, and supporting invoices are archived in the shared finance drive for a minimum of six years.
+
+Section 7: Late Filing and Escalation
+If a VAT return is expected to be late, the accounts team informs the Head of Finance at the end of the month. Late filing penalties are recorded as an operating expense.
+

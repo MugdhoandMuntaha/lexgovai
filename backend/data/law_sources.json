@@ -1,0 +1,93 @@
+[
+  {
+    "id": "src-minlaw",
+    "name": "Ministry of Law Legislative & Parliamentary Affairs Portal",
+    "base_url": "http://bdlaws.minlaw.gov.bd",
+    "source_type": "acts_and_ordinances",
+    "enabled": true,
+    "crawl_config": {
+      "max_depth": 2,
+      "max_pages": 30,
+      "timeout_seconds": 30,
+      "allowed_domains": ["bdlaws.minlaw.gov.bd"]
+    },
+    "rate_limit": 1.5,
+    "last_status": "configured"
+  },
+  {
+    "id": "src-nbr-vat",
+    "name": "National Board of Revenue (NBR) - Customs, Excise & VAT",
+    "base_url": "https://nbr.gov.bd",
+    "source_type": "sro_and_circulars",
+    "enabled": true,
+    "crawl_config": {
+      "max_depth": 2,
+      "max_pages": 25,
+      "timeout_seconds": 30,
+      "allowed_domains": ["nbr.gov.bd"]
+    },
+    "rate_limit": 1.0,
+    "last_status": "configured"
+  },
+  {
+    "id": "src-bgpress",
+    "name": "Department of Printing & Publications (Bangladesh Gazette)",
+    "base_url": "https://www.dpp.gov.bd/bgpress",
+    "source_type": "official_gazette",
+    "enabled": true,
+    "crawl_config": {
+      "max_depth": 2,
+      "max_pages": 25,
+      "timeout_seconds": 30,
+      "allowed_domains": ["dpp.gov.bd", "www.dpp.gov.bd"]
+    },
+    "rate_limit": 2.0,
+    "last_status": "configured"
+  },
+  {
+    "id": "src-bb",
+    "name": "Bangladesh Bank (Banking Regulations & Policy)",
+    "base_url": "https://www.bb.org.bd",
+    "source_type": "banking_circulars",
+    "enabled": true,
+    "crawl_config": {
+      "max_depth": 2,
+      "max_pages": 25,
+      "timeout_seconds": 30,
+      "allowed_domains": ["bb.org.bd", "www.bb.org.bd"]
+    },
+    "rate_limit": 1.5,
+    "last_status": "configured"
+  },
+  {
+    "id": "src-bsec",
+    "name": "Bangladesh Securities & Exchange Commission (BSEC)",
+    "base_url": "https://www.sec.gov.bd",
+    "source_type": "securities_rules",
+    "enabled": true,
+    "crawl_config": {
+      "max_depth": 2,
+      "max_pages": 25,
+      "timeout_seconds": 30,
+      "allowed_domains": ["sec.gov.bd", "www.sec.gov.bd"]
+    },
+    "rate_limit": 1.5,
+    "last_status": "configured"
+  },
+  {
+    "id": "src-rjsc",
+    "name": "Registrar of Joint Stock Companies and Firms (RJSC)",
+    "base_url": "https://www.roc.gov.bd",
+    "source_type": "company_regulations",
+    "enabled": true,
+    "crawl_config": {
+      "max_depth": 2,
+      "max_pages": 20,
+      "timeout_seconds": 30,
+      "allowed_domains": ["roc.gov.bd", "www.roc.gov.bd"]
+    },
+    "rate_limit": 2.0,
+    "last_status": "configured"
+  }
+]
+

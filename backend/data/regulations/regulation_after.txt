@@ -1,0 +1,11 @@
+National Board of Revenue (NBR) Value Added Tax (VAT) SRO Clause 4.2 (2025 Revised Edition):
+
+1. Filing Deadlines:
+All registered taxable entities operating in Bangladesh shall prepare and file their monthly VAT returns (Form Mushak-9.1) within fifteen (15) calendar days following the conclusion of each monthly tax period.
+
+2. Mandatory Designated Officer:
+Every taxable entity must formally designate a named, certified VAT Filing Officer who bears primary legal responsibility for monthly VAT compliance, return verification, and digital signature submission.
+
+3. Non-Compliance Penalties:
+Failure to submit Form Mushak-9.1 within the mandatory 15-calendar-day window by the designated VAT Filing Officer shall trigger an automated non-compliance penalty of BDT 10,000 per day of delay.
+

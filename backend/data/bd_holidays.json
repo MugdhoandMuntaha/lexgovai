@@ -1,0 +1,116 @@
+[
+  {
+    "name_en": "Shaheed Day and International Mother Language Day",
+    "name_bn": "শহীদ দিবস ও আন্তর্জাতিক মাতৃভাষা দিবস",
+    "date": "2026-02-21",
+    "type": "national"
+  },
+  {
+    "name_en": "Independence and National Day",
+    "name_bn": "স্বাধীনতা ও জাতীয় দিবস",
+    "date": "2026-03-26",
+    "type": "national"
+  },
+  {
+    "name_en": "Jumatul Wida",
+    "name_bn": "জুমাতুল বিদা",
+    "date": "2026-03-20",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Shab-e-Qadr",
+    "name_bn": "শব-ই-কদর",
+    "date": "2026-03-21",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Eid-ul-Fitr (Day 1)",
+    "name_bn": "ঈদুল ফিতর (প্রথম দিন)",
+    "date": "2026-03-22",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Eid-ul-Fitr (Day 2)",
+    "name_bn": "ঈদুল ফিতর (দ্বিতীয় দিন)",
+    "date": "2026-03-23",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Eid-ul-Fitr (Day 3)",
+    "name_bn": "ঈদুল ফিতর (তৃতীয় দিন)",
+    "date": "2026-03-24",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Bengali New Year (Pahela Baishakh)",
+    "name_bn": "পহেলা বৈশাখ",
+    "date": "2026-04-14",
+    "type": "cultural"
+  },
+  {
+    "name_en": "May Day",
+    "name_bn": "মে দিবস",
+    "date": "2026-05-01",
+    "type": "international"
+  },
+  {
+    "name_en": "Buddha Purnima (Vesak)",
+    "name_bn": "বুদ্ধ পূর্ণিমা",
+    "date": "2026-05-02",
+    "type": "religious_buddhist"
+  },
+  {
+    "name_en": "Eid-ul-Adha (Day 1)",
+    "name_bn": "ঈদুল আযহা (প্রথম দিন)",
+    "date": "2026-05-29",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Eid-ul-Adha (Day 2)",
+    "name_bn": "ঈদুল আযহা (দ্বিতীয় দিন)",
+    "date": "2026-05-30",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Eid-ul-Adha (Day 3)",
+    "name_bn": "ঈদুল আযহা (তৃতীয় দিন)",
+    "date": "2026-05-31",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Ashura",
+    "name_bn": "পবিত্র আশুরা",
+    "date": "2026-06-27",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Janmashtami",
+    "name_bn": "শুভ জন্মাষ্টমী",
+    "date": "2026-09-04",
+    "type": "religious_hindu"
+  },
+  {
+    "name_en": "Eid-e-Miladunnabi",
+    "name_bn": "পবিত্র ঈদে মিলাদুন্নবী",
+    "date": "2026-09-26",
+    "type": "religious_islamic"
+  },
+  {
+    "name_en": "Durga Puja (Bijoya Dashami)",
+    "name_bn": "বিজয়া দশমী",
+    "date": "2026-10-20",
+    "type": "religious_hindu"
+  },
+  {
+    "name_en": "Victory Day",
+    "name_bn": "বিজয় দিবস",
+    "date": "2026-12-16",
+    "type": "national"
+  },
+  {
+    "name_en": "Christmas Day",
+    "name_bn": "বড় দিন",
+    "date": "2026-12-25",
+    "type": "religious_christian"
+  }
+]
