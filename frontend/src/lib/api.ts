@@ -42,8 +42,9 @@ import {
 import { clearSession } from './session';
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:8000/api');
+  typeof window !== 'undefined'
+    ? '/api'
+    : (process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:8000/api'));
 
 /** Returns the API base URL for use in client components that need raw fetch (e.g. SSE streams). */
 export function getApiBase(): string {

@@ -12,7 +12,7 @@ from ..db import Database
 class ShortLinkService:
     def __init__(self, db: Database, base_domain: str | None = None):
         self.db = db
-        self.base_domain = base_domain or "https://compliance-sand.vercel.app"
+        self.base_domain = base_domain or "https://lexgov-ai-app.vercel.app"
 
     def create_short_link(self, target_path_or_url: str, expire_days: int = 14) -> dict[str, str]:
         """Creates a signed, expiring short link code and full URL."""
